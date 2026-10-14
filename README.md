@@ -46,6 +46,8 @@ question ─► condense follow-ups (LLM) ─► ┌ dense (FAISS)   ┐
 - End-to-end answers (retrieve, rerank, stream with `gpt-oss-120b` on Groq) take roughly 1-2 s; retrieval itself is ~150 ms.
 - Ingesting the three samples with LLM graph extraction takes ~2.5 minutes on Groq's free tier, which is rate-limited (the pipeline throttles and retries). Without an API key, ingestion is near-instant and uses regex extraction only.
 
+Graph-dependent numbers shift slightly between ingestions (e.g. hybrid + graph MRR 0.80 to 0.81) because the LLM extracts slightly different entities each time; the other rows are deterministic.
+
 Caveat: 24 questions over 3 short documents is a smoke-test-sized benchmark. Differences of one question (~0.04) are noise. It exists to catch regressions and to ground design choices; it is not a leaderboard.
 
 ## Run locally
