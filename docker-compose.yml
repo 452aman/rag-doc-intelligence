@@ -1,0 +1,16 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: sqlite:////data/legal.db
+      CORS_ORIGINS: '["http://localhost:8082"]'
+    volumes: [data:/data]
+  web:
+    build: ./frontend
+    ports: ["8082:80"]
+    depends_on: [api]
+volumes:
+  data:

@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy-950: #0a1226;
+  --color-navy-900: #101a36;
+  --color-gold: #b8893b;
+  --color-gold-dark: #8f6a2c;
+}
+
+body { @apply bg-stone-50 text-slate-800 antialiased; font-family: 'Inter', system-ui, sans-serif; }
+
+@layer components {
+  .card { @apply rounded-xl border border-stone-200 bg-white shadow-sm; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg bg-navy-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-navy-950 disabled:opacity-50; }
+  .btn-gold { @apply inline-flex items-center justify-center gap-2 rounded-lg bg-gold px-4 py-2 text-sm font-medium text-white transition hover:bg-gold-dark disabled:opacity-50; }
+  .btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-stone-100 disabled:opacity-50; }
+  .input { @apply w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-gold focus:ring-2 focus:ring-amber-100; }
+  .label { @apply mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500; }
+}

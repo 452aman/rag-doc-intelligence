@@ -1,0 +1,43 @@
+MASTER SERVICES AGREEMENT
+(Synthetic sample document for demonstration purposes only)
+
+This Master Services Agreement (the "MSA") is made on June 15, 2025 between Initech Software LLC, a Texas limited liability company ("Provider"), and Umbrella Retail Group plc, a company registered in Scotland ("Customer").
+
+ARTICLE 1 - SERVICES
+1.1 Provider shall supply the cloud inventory management services described in each Statement of Work (each an "SOW") signed by both parties.
+1.2 Provider shall perform the services with reasonable skill and care and in accordance with the service levels in Schedule A.
+
+ARTICLE 2 - FEES AND PAYMENT
+2.1 Customer shall pay the monthly subscription fee of USD 12,500 plus applicable taxes, invoiced in advance on the first day of each month.
+2.2 Undisputed invoices are payable within thirty (30) days of the invoice date. Late amounts accrue interest at 1.5% per month or the maximum rate permitted by law, whichever is lower.
+2.3 Provider may increase fees once per contract year by up to 5% on ninety (90) days' written notice.
+
+ARTICLE 3 - SERVICE LEVELS
+3.1 Provider guarantees 99.9% monthly uptime, excluding scheduled maintenance of up to four (4) hours per month notified at least 48 hours in advance.
+3.2 If uptime falls below 99.9% in a month, Customer is entitled to a service credit of 10% of that month's fee, rising to 25% if uptime falls below 99.0%. Service credits are Customer's sole remedy for service level failures.
+
+ARTICLE 4 - INTELLECTUAL PROPERTY
+4.1 Each party retains ownership of its pre-existing intellectual property.
+4.2 Customer owns all data it submits to the services ("Customer Data"). Provider receives a limited licence to process Customer Data solely to provide the services.
+4.3 Provider grants Customer a non-exclusive, non-transferable licence to use the services during the term.
+
+ARTICLE 5 - DATA PROTECTION
+5.1 Provider shall process personal data only on documented instructions from Customer and shall implement appropriate technical and organisational security measures.
+5.2 Provider shall notify Customer without undue delay and in any event within seventy-two (72) hours after becoming aware of a personal data breach.
+
+ARTICLE 6 - INDEMNIFICATION
+6.1 Provider shall indemnify Customer against third-party claims alleging that the services infringe a patent, copyright or trade secret, provided Customer promptly notifies Provider and allows Provider to control the defence.
+6.2 Customer shall indemnify Provider against third-party claims arising from Customer Data or Customer's breach of this MSA.
+
+ARTICLE 7 - LIMITATION OF LIABILITY
+7.1 Neither party is liable for indirect, incidental, special or consequential damages, or loss of profits, even if advised of the possibility.
+7.2 Each party's total aggregate liability under this MSA shall not exceed the fees paid or payable in the twelve (12) months preceding the claim.
+7.3 The limitations in this Article do not apply to the indemnities in Article 6, breach of Article 5, or liability that cannot be limited by law.
+
+ARTICLE 8 - TERM AND TERMINATION
+8.1 This MSA starts on the date above and continues for an initial term of three (3) years, renewing automatically for successive one (1) year terms unless either party gives at least ninety (90) days' written notice of non-renewal.
+8.2 Either party may terminate immediately by written notice if the other party commits a material breach that remains uncured thirty (30) days after written notice.
+8.3 On termination Provider shall make Customer Data available for export for thirty (30) days and then delete it.
+
+ARTICLE 9 - GOVERNING LAW
+9.1 This MSA is governed by the laws of Scotland and the courts of Edinburgh have exclusive jurisdiction.

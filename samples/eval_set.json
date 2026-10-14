@@ -1,0 +1,170 @@
+[
+ {
+  "q": "How long do confidentiality obligations last after the agreement ends?",
+  "doc": "nda",
+  "gold": [
+   "five (5) years"
+  ]
+ },
+ {
+  "q": "Can either party walk away early and how much notice is needed?",
+  "doc": "nda",
+  "gold": [
+   "for convenience"
+  ]
+ },
+ {
+  "q": "What is the cap on liability under the NDA?",
+  "doc": "nda",
+  "gold": [
+   "usd 500,000"
+  ]
+ },
+ {
+  "q": "Which state's law governs the NDA?",
+  "doc": "nda",
+  "gold": [
+   "laws of the state of delaware"
+  ]
+ },
+ {
+  "q": "When must confidential materials be returned or destroyed?",
+  "doc": "nda",
+  "gold": [
+   "fourteen (14) days"
+  ]
+ },
+ {
+  "q": "Can the recipient reveal information if a court demands it?",
+  "doc": "nda",
+  "gold": [
+   "required by law or court order"
+  ]
+ },
+ {
+  "q": "Is reverse engineering of prototypes allowed?",
+  "doc": "nda",
+  "gold": [
+   "reverse engineer"
+  ]
+ },
+ {
+  "q": "How much is the monthly subscription fee?",
+  "doc": "services",
+  "gold": [
+   "usd 12,500"
+  ]
+ },
+ {
+  "q": "What compensation do we get if uptime drops below the guarantee?",
+  "doc": "services",
+  "gold": [
+   "service credit"
+  ]
+ },
+ {
+  "q": "How quickly must a personal data breach be reported?",
+  "doc": "services",
+  "gold": [
+   "seventy-two (72) hours"
+  ]
+ },
+ {
+  "q": "Does the services agreement renew by itself?",
+  "doc": "services",
+  "gold": [
+   "renewing automatically"
+  ]
+ },
+ {
+  "q": "What happens to our data when the contract ends?",
+  "doc": "services",
+  "gold": [
+   "export for thirty (30) days"
+  ]
+ },
+ {
+  "q": "Who pays if a third party claims the software infringes their patent?",
+  "doc": "services",
+  "gold": [
+   "infringe a patent"
+  ]
+ },
+ {
+  "q": "What interest is charged on overdue invoices?",
+  "doc": "services",
+  "gold": [
+   "1.5% per month"
+  ]
+ },
+ {
+  "q": "Which courts handle disputes under the services agreement?",
+  "doc": "services",
+  "gold": [
+   "courts of edinburgh"
+  ]
+ },
+ {
+  "q": "How many days of annual leave does the employee get?",
+  "doc": "employment",
+  "gold": [
+   "24 days"
+  ]
+ },
+ {
+  "q": "Can the employee join a rival company after leaving?",
+  "doc": "employment",
+  "gold": [
+   "direct competitor"
+  ]
+ },
+ {
+  "q": "What notice is needed to end employment after probation?",
+  "doc": "employment",
+  "gold": [
+   "sixty (60) days"
+  ]
+ },
+ {
+  "q": "Who owns the code written by the employee?",
+  "doc": "employment",
+  "gold": [
+   "owned exclusively by the employer"
+  ]
+ },
+ {
+  "q": "What is the employee's base salary?",
+  "doc": "employment",
+  "gold": [
+   "inr 2,400,000"
+  ]
+ },
+ {
+  "q": "How are employment disputes resolved?",
+  "doc": "employment",
+  "gold": [
+   "arbitration"
+  ]
+ },
+ {
+  "q": "What does Priya Nair get in stock options?",
+  "doc": "employment",
+  "gold": [
+   "4,000 equity shares"
+  ]
+ },
+ {
+  "q": "Where is Globex Analytics incorporated?",
+  "doc": "nda",
+  "gold": [
+   "england and wales"
+  ]
+ },
+ {
+  "q": "What does Umbrella Retail Group pay every month?",
+  "doc": "services",
+  "gold": [
+   "usd 12,500"
+  ]
+ }
+]

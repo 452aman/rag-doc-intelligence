@@ -1,0 +1,37 @@
+MUTUAL NON-DISCLOSURE AGREEMENT
+(Synthetic sample document for demonstration purposes only)
+
+This Mutual Non-Disclosure Agreement (the "Agreement") is entered into as of March 1, 2025 (the "Effective Date") by and between Acme Robotics Inc., a Delaware corporation ("Acme"), and Globex Analytics Ltd., a company incorporated in England and Wales ("Globex"). Acme and Globex are each a "Party" and together the "Parties".
+
+1. DEFINITIONS
+1.1 "Confidential Information" means any non-public technical, business or financial information disclosed by one Party (the "Discloser") to the other Party (the "Recipient"), whether orally, in writing or by inspection, that is marked confidential or that a reasonable person would understand to be confidential.
+1.2 "Permitted Purpose" means evaluating a potential commercial partnership between the Parties relating to warehouse automation analytics.
+
+2. OBLIGATIONS OF THE RECIPIENT
+2.1 The Recipient shall hold Confidential Information in strict confidence and shall use at least the same degree of care it uses for its own confidential information, and no less than reasonable care.
+2.2 The Recipient shall not disclose Confidential Information to any third party except to its employees and professional advisers who need to know it for the Permitted Purpose and who are bound by written confidentiality obligations no less protective than this Agreement.
+2.3 The Recipient shall not reverse engineer, decompile or disassemble any prototype, software or sample provided by the Discloser.
+
+3. EXCLUSIONS
+3.1 Confidential Information does not include information that (a) is or becomes publicly available through no breach of this Agreement; (b) was lawfully known to the Recipient before disclosure; (c) is independently developed by the Recipient without use of the Discloser's information; or (d) is rightfully received from a third party without restriction.
+3.2 The Recipient may disclose Confidential Information to the extent required by law or court order, provided it gives the Discloser prompt written notice and cooperates in seeking a protective order.
+
+4. TERM AND TERMINATION
+4.1 This Agreement commences on the Effective Date and continues for a period of two (2) years unless terminated earlier.
+4.2 Either Party may terminate this Agreement for convenience by giving thirty (30) days' prior written notice to the other Party.
+4.3 The confidentiality obligations in Section 2 survive termination or expiry of this Agreement for a period of five (5) years.
+
+5. RETURN OF MATERIALS
+5.1 Within fourteen (14) days after a written request or termination, the Recipient shall return or destroy all Confidential Information and certify destruction in writing.
+
+6. REMEDIES AND LIABILITY
+6.1 Each Party acknowledges that breach of this Agreement may cause irreparable harm for which damages are an inadequate remedy, and that the Discloser is entitled to seek injunctive relief without proof of actual damages.
+6.2 Neither Party's aggregate liability under this Agreement shall exceed USD 500,000, except for liability arising from wilful breach or misappropriation of trade secrets.
+
+7. GOVERNING LAW AND DISPUTES
+7.1 This Agreement is governed by the laws of the State of Delaware, without regard to conflict of law principles.
+7.2 Any dispute shall be submitted to the exclusive jurisdiction of the state and federal courts located in Wilmington, Delaware.
+
+8. GENERAL
+8.1 This Agreement is the entire agreement between the Parties on its subject matter and may be amended only in writing signed by both Parties.
+8.2 Neither Party may assign this Agreement without the prior written consent of the other Party.
