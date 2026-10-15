@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Gauge, Plus, Send, Sparkles, Zap } from 'lucide-react'
+import { AlertTriangle, Gauge, Plus, Send, Sparkles, ThumbsDown, ThumbsUp, Zap } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { api } from '../api'
+import { api, authFetch, readSSE } from '../api'
 import type { AnswerMeta, ChatMessage, Citation, Conversation, Doc } from '../types'
 
 const MODES: [string, string][] = [['full', 'Hybrid + graph + rerank'], ['hybrid+graph', 'Hybrid + graph'], ['hybrid', 'Hybrid (BM25 + dense)'], ['dense', 'Dense only'], ['bm25', 'BM25 only']]
@@ -58,26 +58,23 @@ export default function Chat() {
     setMsgs((m) => [...m, { role: 'user', content: question }, { role: 'assistant', content: '', streaming: true }])
     const patch = (fn: (m: ChatMessage) => ChatMessage) => setMsgs((all) => all.map((m, i) => (i === all.length - 1 ? fn(m) : m)))
     try {
-      const res = await fetch('/api/v1/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const res = await authFetch('/api/v1/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question, conversation_id: convId, doc_ids: scope.length ? scope : null, mode }) })
-      if (!res.ok || !res.body) throw new Error((await res.json().catch(() => ({}))).detail ?? `HTTP ${res.status}`)
-      const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = ''
-      for (;;) {
-        const { done, value } = await reader.read(); if (done) break
-        buf += dec.decode(value, { stream: true })
-        const lines = buf.split('\n\n'); buf = lines.pop() ?? ''
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          const ev = JSON.parse(line.slice(6))
-          if (ev.type === 'conversation') setConvId(ev.id)
-          else if (ev.type === 'retrieval') patch((m) => ({ ...m, citations: ev.citations, meta: { ...(m.meta as AnswerMeta), entities: ev.entities } as AnswerMeta }))
-          else if (ev.type === 'token') patch((m) => ({ ...m, content: m.content + ev.text }))
-          else if (ev.type === 'done') patch((m) => ({ ...m, content: ev.answer, streaming: false, meta: { ...ev.meta, entities: m.meta?.entities, cited: ev.cited } }))
-          else if (ev.type === 'error') patch((m) => ({ ...m, streaming: false, error: ev.message }))
-        }
-      }
+      await readSSE(res, (ev) => {
+        if (ev.type === 'conversation') setConvId(ev.id)
+        else if (ev.type === 'retrieval') patch((m) => ({ ...m, citations: ev.citations, meta: { ...(m.meta as AnswerMeta), entities: ev.entities } as AnswerMeta }))
+        else if (ev.type === 'token') patch((m) => ({ ...m, content: m.content + ev.text }))
+        else if (ev.type === 'done') patch((m) => ({ ...m, id: ev.message_id, content: ev.answer, streaming: false, meta: { ...ev.meta, entities: m.meta?.entities, cited: ev.cited } }))
+        else if (ev.type === 'error') patch((m) => ({ ...m, streaming: false, error: ev.message }))
+      })
     } catch (e) { patch((m) => ({ ...m, streaming: false, error: (e as Error).message })) }
     setBusy(false); qc.invalidateQueries({ queryKey: ['convs'] })
+  }
+  const rate = async (m: ChatMessage, rating: 1 | -1) => {
+    if (!m.id) return
+    if (m.rating === rating) return
+    setMsgs((all) => all.map((x) => (x.id === m.id ? { ...x, rating } : x)))
+    await api.post(`/messages/${m.id}/feedback`, { rating }).catch(() => setMsgs((all) => all.map((x) => (x.id === m.id ? { ...x, rating: m.rating } : x))))
   }
   const lastCites = [...msgs].reverse().find((m) => m.role === 'assistant')?.citations ?? []
   const showCite = (m: ChatMessage, n: number) => setActive(m.citations?.find((c) => c.n === n) ?? null)
@@ -106,6 +103,11 @@ export default function Chat() {
                 {m.content || m.streaming ? <Answer m={m} onCite={(n) => showCite(m, n)} /> : null}
                 {m.error && <p className="rounded-lg bg-rose-400/10 px-3 py-2 text-rose-300">{m.error}</p>}
                 {m.meta && !m.streaming && <Meta m={m.meta} />}
+                {m.id && !m.streaming && (
+                  <div className="mt-2 flex items-center gap-1 text-xs text-slate-500">Was this helpful?
+                    <button onClick={() => rate(m, 1)} className={`rounded p-1.5 hover:bg-white/10 ${m.rating === 1 ? 'text-emerald-400' : ''}`} aria-label="Helpful"><ThumbsUp size={14} /></button>
+                    <button onClick={() => rate(m, -1)} className={`rounded p-1.5 hover:bg-white/10 ${m.rating === -1 ? 'text-rose-400' : ''}`} aria-label="Not helpful"><ThumbsDown size={14} /></button>
+                  </div>)}
               </div>)}
           <div ref={bottom} />
         </div>
@@ -122,6 +124,7 @@ export default function Chat() {
         {(active ? [active] : lastCites).map((c) => (
           <div key={c.chunk_id} className={`rounded-lg border p-3 text-sm ${active ? 'border-gold bg-amber-400/10' : 'border-white/10'}`}>
             <div className="flex items-center gap-2"><span className="rounded bg-amber-400/15 px-1.5 text-xs font-semibold text-gold-dark">{c.n}</span><span className="truncate text-xs font-medium">{c.doc_name}</span></div>
+            {c.suspicious && <div className="mt-1 flex items-center gap-1 text-xs text-amber-300"><AlertTriangle size={12} />Contains instruction-like text. Treated as data, not obeyed.</div>}
             <div className="mt-1 text-xs text-slate-500">{c.section} · p.{c.page} · {c.via.join(' + ') || 'rerank'}</div>
             <p className="mt-2 whitespace-pre-wrap text-slate-300">{c.text}</p>
           </div>))}

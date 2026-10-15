@@ -6,6 +6,8 @@ services:
     env_file: ./backend/.env
     environment:
       DATABASE_URL: sqlite:////data/legal.db
+      DATA_DIR: /data                      # uploaded originals live next to the database, so ingestion can resume after a restart
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
       CORS_ORIGINS: '["http://localhost:8082"]'
     volumes: [data:/data]
   web:

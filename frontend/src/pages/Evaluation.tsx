@@ -1,12 +1,17 @@
-import { useMutation } from '@tanstack/react-query'
-import { Play } from 'lucide-react'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { Download, Play, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { api, errMsg } from '../api'
+import { api, authFetch, errMsg } from '../api'
 import type { EvalResult } from '../types'
 
 const LABEL: Record<string, string> = { dense: 'Dense (FAISS)', bm25: 'BM25', hybrid: 'Hybrid (RRF)', 'hybrid+graph': 'Hybrid + graph', full: 'Hybrid + graph + rerank' }
 
 export default function Evaluation() {
+  const { data: fb } = useQuery({ queryKey: ['feedback'], queryFn: async () => (await api.get<{ total: number; up: number; down: number }>('/feedback/summary')).data, refetchInterval: 8000 })
+  const exportFb = async () => {
+    const r = await authFetch('/api/v1/feedback/export.jsonl'); const url = URL.createObjectURL(await r.blob())
+    Object.assign(document.createElement('a'), { href: url, download: 'feedback.jsonl' }).click(); URL.revokeObjectURL(url)
+  }
   const run = useMutation({ mutationFn: async () => (await api.post<EvalResult>('/evaluation/run')).data })
   const d = run.data
   const rows = d ? Object.entries(d.modes).map(([k, v]) => ({ mode: LABEL[k], 'hit@1': v['hit@1'], 'hit@3': v['hit@3'], 'hit@5': v['hit@5'], MRR: v.mrr })) : []
@@ -16,6 +21,11 @@ export default function Evaluation() {
         <div><h1 className="text-2xl font-semibold">Retrieval evaluation</h1>
           <p className="max-w-2xl text-sm text-slate-400">Runs every retrieval strategy over a fixed question set against the loaded sample contracts. A chunk counts as a hit when it contains the gold answer text. Measured, not assumed.</p></div>
         <button className="btn-gold" onClick={() => run.mutate()} disabled={run.isPending}><Play size={14} />{run.isPending ? 'Running…' : 'Run benchmark'}</button>
+      </div>
+      <div className="card flex flex-wrap items-center gap-4 p-5">
+        <div className="min-w-0 flex-1"><h2 className="font-semibold">Your answer feedback</h2><p className="text-sm text-slate-400">Every thumbs up or down on an answer is saved. Export it as a JSONL evaluation set (question, answer, sources, rating).</p></div>
+        <div className="flex items-center gap-4 text-sm"><span className="flex items-center gap-1 text-emerald-400"><ThumbsUp size={14} />{fb?.up ?? 0}</span><span className="flex items-center gap-1 text-rose-400"><ThumbsDown size={14} />{fb?.down ?? 0}</span></div>
+        <button className="btn-ghost" disabled={!fb?.total} onClick={exportFb}><Download size={14} />Export JSONL</button>
       </div>
       {run.isError && <p className="rounded-lg bg-rose-400/10 px-3 py-2 text-sm text-rose-300">{errMsg(run.error)}</p>}
       {d && (<>

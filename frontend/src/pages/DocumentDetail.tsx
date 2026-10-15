@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { AlertTriangle, ArrowLeft } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { api, sevCls } from '../api'
 import type { DocDetail } from '../types'
@@ -33,7 +33,8 @@ export default function DocumentDetail() {
         </div>
         <section className="card h-fit p-5"><h2 className="mb-3 font-semibold">Clauses</h2>
           <ol className="max-h-[640px] space-y-3 overflow-y-auto pr-1">{d.chunks.map((c) => (
-            <li key={c.id} className="text-sm"><div className="text-xs font-semibold text-gold-dark">{c.section}</div><p className="mt-0.5 line-clamp-4 text-slate-300">{c.text}</p></li>))}</ol></section>
+            <li key={c.id} className={`text-sm ${c.suspicious ? 'rounded-lg border border-amber-400/40 bg-amber-400/5 p-2' : ''}`}><div className="text-xs font-semibold text-gold-dark">{c.section}</div>
+              {c.suspicious && <div className="mt-0.5 flex items-start gap-1 text-xs text-amber-300"><AlertTriangle size={12} className="mt-0.5 shrink-0" /><span>Instruction-like text: {(c.injection_phrases ?? []).map((p) => `“${p}”`).join(', ')}. It is treated as data and never obeyed.</span></div>}<p className="mt-0.5 line-clamp-4 text-slate-300">{c.text}</p></li>))}</ol></section>
       </div>
     </div>
   )

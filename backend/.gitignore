@@ -3,3 +3,4 @@ legal_doc_env/
 __pycache__/
 *.db
 .pytest_cache/
+data/

@@ -19,24 +19,21 @@ def load_set() -> list[dict]:
     return json.loads((SAMPLES / "eval_set.json").read_text())
 
 
-def run_retrieval_eval(k: int = 5) -> dict:
+def run_retrieval_eval(k: int = 5, allowed: list[int] | None = None) -> dict:
+    """`allowed` limits the benchmark to one user's documents (tenant isolation)."""
     questions = load_set()
-    doc_for = {}
-    for h in index.chunks.values():
-        for q in questions:
-            if q["doc"] in h.doc_name.lower():
-                doc_for[q["doc"]] = h.doc_id
-    corpus_tokens = sum(est_tokens(h.text) for h in index.chunks.values())
+    scope = set(allowed) if allowed is not None else None
+    corpus_tokens = sum(est_tokens(h.text) for h in index.chunks.values() if scope is None or h.doc_id in scope)
     results = {}
     for mode in MODES:
         ranks, lat, ctx_tokens = [], [], []
         for q in questions:
             t0 = time.perf_counter()
-            res = index.search(q["q"], k=10, mode=mode)  # global search: documents are NOT pre-selected
+            res = index.search(q["q"], k=10, mode=mode, doc_ids=allowed)  # documents are NOT pre-selected within the scope
             lat.append((time.perf_counter() - t0) * 1000)
             rank = next((i for i, h in enumerate(res.hits, 1) if all(g in h.text.lower() for g in q["gold"])), None)
             ranks.append(rank)
-            top = index.search(q["q"], k=k, mode=mode) if mode != "full" else res
+            top = index.search(q["q"], k=k, mode=mode, doc_ids=allowed) if mode != "full" else res
             top.hits = top.hits[:k]
             ctx_tokens.append(est_tokens(build_context(top)))
         n = len(questions)

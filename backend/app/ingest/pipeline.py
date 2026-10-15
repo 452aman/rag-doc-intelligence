@@ -1,9 +1,14 @@
 """Background ingestion: parse → chunk → embed → extract graph → analyse → index."""
 import asyncio
 import logging
+import re
+from pathlib import Path
 
 import numpy as np
-from sqlalchemy import select
+from sqlalchemy import delete, select
+
+from app.core.config import get_settings
+from app.guard import is_suspicious
 
 from app.db import Chunk, Document, Entity, Mention, Relation, SessionLocal, est_tokens
 from app.embeddings import get_embedder, normalize
@@ -93,7 +98,8 @@ async def _run(doc_id: int, name: str, data: bytes) -> None:
         set_stage(doc_id, "embedding", 30)
         vecs = normalize(await asyncio.to_thread(get_embedder().embed, [f"{d.section}\n{d.text}" for d in drafts]))
         with SessionLocal() as db:
-            rows = [Chunk(doc_id=doc_id, idx=i, section=d.section, page=d.page, text=d.text, embedding=vecs[i].astype(np.float32).tobytes())
+            rows = [Chunk(doc_id=doc_id, idx=i, section=d.section, page=d.page, text=d.text, suspicious=is_suspicious(d.text),
+                    embedding=vecs[i].astype(np.float32).tobytes())
                     for i, d in enumerate(drafts)]
             db.add_all(rows)
             db.commit()
@@ -119,6 +125,7 @@ async def _run(doc_id: int, name: str, data: bytes) -> None:
             doc.key_facts = key_facts(triples)
             doc.risks = analyze_risks(triples)
             doc.chunk_count, doc.entity_count, doc.est_tokens = len(drafts), n_entities, est_tokens(full)
+            doc.suspicious_chunks = sum(1 for d in drafts if is_suspicious(d.text))
             doc.status, doc.stage, doc.progress = "ready", "ready", 100
             db.commit()
             await asyncio.to_thread(index.rebuild, db)
@@ -128,3 +135,54 @@ async def _run(doc_id: int, name: str, data: bytes) -> None:
             d = db.get(Document, doc_id)
             d.status, d.stage, d.error = "failed", "failed", str(e)[:400]
             db.commit()
+
+
+# ------------------------------------------------------------------ persistence, recovery, retry
+def save_original(doc_id: int, name: str, data: bytes) -> str:
+    """Keep the uploaded bytes on disk so a crash or restart never loses a document mid-ingestion."""
+    folder = Path(get_settings().data_dir) / "uploads"
+    folder.mkdir(parents=True, exist_ok=True)
+    safe = re.sub(r"[^A-Za-z0-9._-]", "_", name)[:120]
+    path = folder / f"{doc_id}_{safe}"
+    path.write_bytes(data)
+    return str(path)
+
+
+def purge_derived(db, doc_id: int) -> None:
+    """Remove everything ingestion produced for a document (chunks, graph rows) so it can be re-run cleanly."""
+    for model in (Relation, Mention):
+        db.execute(delete(model).where(model.doc_id == doc_id))
+    db.execute(delete(Chunk).where(Chunk.doc_id == doc_id))
+    db.execute(delete(Entity).where(Entity.id.not_in(select(Mention.entity_id))))
+
+
+def restart(doc_id: int) -> bool:
+    """Re-run ingestion from the stored original. Returns False if the file is gone."""
+    with SessionLocal() as db:
+        doc = db.get(Document, doc_id)
+        if not doc or not doc.file_path or not Path(doc.file_path).exists():
+            return False
+        purge_derived(db, doc_id)
+        doc.status, doc.stage, doc.progress, doc.error = "queued", "queued", 0, None
+        name, path = doc.name, doc.file_path
+        db.commit()
+    start(doc_id, name, Path(path).read_bytes())
+    return True
+
+
+def recover_stuck() -> dict:
+    """Called at startup: documents left queued/processing by a crash are resumed, or failed with a clear reason."""
+    resumed = failed = 0
+    with SessionLocal() as db:
+        stuck = db.scalars(select(Document).where(Document.status.in_(["queued", "processing"]))).all()
+        ids = [d.id for d in stuck]
+    for doc_id in ids:
+        if restart(doc_id):
+            resumed += 1
+        else:
+            with SessionLocal() as db:
+                d = db.get(Document, doc_id)
+                d.status, d.stage, d.error = "failed", "failed", "Interrupted by a restart and the original file was not saved. Please re-upload."
+                db.commit()
+            failed += 1
+    return {"resumed": resumed, "failed": failed}

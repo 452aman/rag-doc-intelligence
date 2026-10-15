@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, FileText, Loader2, Trash2, UploadCloud } from 'lucide-react'
+import { AlertTriangle, FileText, Loader2, RotateCcw, ShieldAlert, Trash2, UploadCloud } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, errMsg, sevCls } from '../api'
@@ -12,16 +12,18 @@ export default function Documents() {
   const input = useRef<HTMLInputElement>(null)
   const [drag, setDrag] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const { data: docs = [] } = useQuery({
     queryKey: ['docs'], queryFn: async () => (await api.get<Doc[]>('/documents')).data,
     refetchInterval: (q) => (q.state.data?.some((d) => d.status === 'queued' || d.status === 'processing') ? 1500 : false),
   })
   const refresh = () => { qc.invalidateQueries({ queryKey: ['docs'] }); qc.invalidateQueries({ queryKey: ['stats'] }) }
   const upload = useMutation({
-    mutationFn: async (files: File[]) => { for (const f of files) { const fd = new FormData(); fd.append('file', f); await api.post('/documents', fd) } },
-    onSuccess: refresh, onError: (e) => setError(errMsg(e)),
+    mutationFn: async (files: File[]) => { const dups: string[] = []; for (const f of files) { const fd = new FormData(); fd.append('file', f); const r = await api.post('/documents', fd); if (r.data.duplicate) dups.push(f.name) } return dups },
+    onSuccess: (dups) => { refresh(); if (dups?.length) setNotice(`${dups.join(', ')} ${dups.length > 1 ? 'were' : 'was'} already uploaded, so nothing new was added.`) }, onError: (e) => setError(errMsg(e)),
   })
   const samples = useMutation({ mutationFn: async () => api.post('/documents/load-samples'), onSuccess: refresh })
+  const retry = useMutation({ mutationFn: async (id: number) => api.post(`/documents/${id}/retry`), onSuccess: refresh, onError: (e) => setError(errMsg(e)) })
   const remove = useMutation({ mutationFn: async (id: number) => api.delete(`/documents/${id}`), onSuccess: refresh })
   const drop = (e: React.DragEvent) => { e.preventDefault(); setDrag(false); setError(''); upload.mutate([...e.dataTransfer.files]) }
 
@@ -37,6 +39,7 @@ export default function Documents() {
         <div className="font-medium">{upload.isPending ? 'Uploading…' : 'Drop PDF, DOCX, TXT or MD files here, or click to browse'}</div>
         <input ref={input} type="file" multiple hidden accept=".pdf,.docx,.txt,.md" onChange={(e) => { setError(''); upload.mutate([...(e.target.files ?? [])]) }} />
       </div>
+      {notice && <p className="rounded-lg bg-sky-400/10 px-3 py-2 text-sm text-sky-300">{notice}</p>}
       {error && <p className="rounded-lg bg-rose-400/10 px-3 py-2 text-sm text-rose-300">{error}</p>}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {docs.map((d) => (
@@ -52,10 +55,11 @@ export default function Documents() {
             {(d.status === 'queued' || d.status === 'processing') && (
               <div><div className="mb-1 flex items-center gap-2 text-xs text-slate-400"><Loader2 size={12} className="animate-spin" />{d.stage}</div>
                 <div className="h-1.5 rounded bg-white/[0.07]"><div className="h-1.5 rounded bg-gold transition-all" style={{ width: `${d.progress}%` }} /></div></div>)}
-            {d.status === 'failed' && <p className="flex items-center gap-1 text-xs text-rose-400"><AlertTriangle size={12} />{d.error}</p>}
+            {d.status === 'failed' && <div className="space-y-2"><p className="flex items-start gap-1 text-xs text-rose-400"><AlertTriangle size={12} className="mt-0.5 shrink-0" />{d.error}</p><button className="btn-ghost" disabled={retry.isPending} onClick={() => retry.mutate(d.id)}><RotateCcw size={13} />Retry</button></div>}
             {d.status === 'ready' && (
               <div className="flex gap-1.5">{(['high', 'medium', 'low', 'info'] as const).filter((s) => d.risk_counts[s] > 0).map((s) => (
-                <span key={s} className={`rounded px-2 py-0.5 text-xs font-medium ring-1 ${sevCls[s]}`}>{d.risk_counts[s]} {s}</span>))}</div>)}
+                <span key={s} className={`rounded px-2 py-0.5 text-xs font-medium ring-1 ${sevCls[s]}`}>{d.risk_counts[s]} {s}</span>))}
+                {d.suspicious_chunks > 0 && <span title="Instruction-like text found. It is fenced as data and never obeyed." className="flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium text-amber-300 ring-1 ring-amber-400/40"><ShieldAlert size={12} />{d.suspicious_chunks} flagged</span>}</div>)}
           </div>
         ))}
       </div>

@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     chunk_target_chars: int = 900
     chunk_overlap_chars: int = 120
     top_k: int = 5                         # chunks that reach the LLM
+    secret_key: str = "change-me-in-production"
+    access_token_minutes: int = 60
+    refresh_token_days: int = 7
+    data_dir: str = "./data"               # uploaded originals live here so ingestion can resume after a restart
+    log_json: bool = True
 
 
 @lru_cache

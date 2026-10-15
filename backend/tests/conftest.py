@@ -33,14 +33,30 @@ class FakeLLM:
             yield t
 
 
+def register(client, email="a@test.dev", name="Test User", password="password123") -> dict:
+    r = client.post("/api/v1/auth/register", json={"email": email, "name": name, "password": password})
+    assert r.status_code == 201, r.text
+    t = client.post("/api/v1/auth/login", data={"username": email, "password": password}).json()
+    return {"Authorization": f"Bearer {t['access_token']}"}
+
+
 @pytest.fixture()
-def client():
+def bare_client():
+    """A client with an empty database and no user (for testing the first-account adoption rule)."""
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     llm_mod.set_llm(llm_mod.NullLLM())
+    app.state.limiter.reset()
     with TestClient(app) as c:
         index.rebuild(__import__("app.db", fromlist=["SessionLocal"]).SessionLocal())
         yield c
+
+
+@pytest.fixture()
+def client(bare_client):
+    """A client already signed in as user A (default Authorization header). Use `register(client, ...)` for other users."""
+    bare_client.headers.update(register(bare_client))
+    return bare_client
 
 
 @pytest.fixture()

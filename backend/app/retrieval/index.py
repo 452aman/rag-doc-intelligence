@@ -62,6 +62,7 @@ class Hit:
     text: str
     score: float = 0.0
     via: list[str] = field(default_factory=list)
+    suspicious: bool = False
 
 
 @dataclass
@@ -92,7 +93,7 @@ class RetrievalIndex:
             rows = db.execute(
                 select(Chunk, Document.name).join(Document, Document.id == Chunk.doc_id).where(Document.status == "ready").order_by(Chunk.id)
             ).all()
-            self.chunks = {c.id: Hit(c.id, c.doc_id, name, c.section, c.page, c.text) for c, name in rows}
+            self.chunks = {c.id: Hit(c.id, c.doc_id, name, c.section, c.page, c.text, suspicious=bool(c.suspicious)) for c, name in rows}
             self.order = list(self.chunks)
             if rows:
                 dim = len(np.frombuffer(rows[0][0].embedding, dtype="float32"))
@@ -137,9 +138,10 @@ class RetrievalIndex:
         if not self.faiss:
             return []
         q = normalize(get_embedder().embed([query]))
-        _, idx = self.faiss.search(q, min(len(self.order), n * 3 if allowed else n))
+        k = len(self.order) if allowed is not None else min(len(self.order), n)  # exact index: rank everything, then filter by owner
+        _, idx = self.faiss.search(q, k)
         ids = [self.order[i] for i in idx[0] if i >= 0]
-        return [i for i in ids if not allowed or self.chunks[i].doc_id in allowed][:n]
+        return [i for i in ids if allowed is None or self.chunks[i].doc_id in allowed][:n]
 
     def _lexical(self, query: str, n: int, allowed: set[int] | None) -> list[int]:
         if not self.bm25:
@@ -147,7 +149,7 @@ class RetrievalIndex:
         scores = self.bm25.get_scores(tokenize(query))
         ranked = np.argsort(-scores)
         out = [self.order[i] for i in ranked if scores[i] > 0]
-        return [i for i in out if not allowed or self.chunks[i].doc_id in allowed][:n]
+        return [i for i in out if allowed is None or self.chunks[i].doc_id in allowed][:n]
 
     def link_entities(self, query: str, allowed: set[int] | None = None) -> list[int]:
         """Link a query to *named* graph entities only.
@@ -162,7 +164,7 @@ class RetrievalIndex:
         linked: dict[int, float] = {}
         for eid in self.graph.nodes:
             ent = self.entity_by_id[eid]
-            if allowed and not any(self.chunks[c].doc_id in allowed for c in self.entity_chunks.get(eid, ())):
+            if allowed is not None and not any(self.chunks[c].doc_id in allowed for c in self.entity_chunks.get(eid, ())):
                 continue
             name = ent["name"].lower()
             if ent["type"] in ("PARTY", "PERSON", "JURISDICTION"):
@@ -192,7 +194,7 @@ class RetrievalIndex:
                 for cid in self.entity_chunks.get(nb, ()):
                     scored[cid] = max(scored.get(cid, 0), 0.5 - 0.05 * rank)
         ids = sorted(scored, key=lambda c: -scored[c])
-        return [c for c in ids if not allowed or self.chunks[c].doc_id in allowed][:8]
+        return [c for c in ids if allowed is None or self.chunks[c].doc_id in allowed][:8]
 
     def _graph_boost(self, entity_ids: list[int], rrf: dict[int, float], via: dict[int, list[str]]) -> None:
         """Re-weight already-retrieved chunks using the knowledge graph (never adds new candidates).
@@ -219,11 +221,14 @@ class RetrievalIndex:
                 rrf[cid] *= 1.12
                 via.setdefault(cid, []).append("graph")
 
-    def _facts(self, entity_ids: list[int], limit: int = 8) -> list[str]:
+    def _facts(self, entity_ids: list[int], limit: int = 8, allowed: set[int] | None = None) -> list[str]:
         facts: list[str] = []
         for eid in entity_ids:
             for nb in self.graph.neighbors(eid):
-                for label in sorted(self.graph[eid][nb]["labels"]):
+                edge = self.graph[eid][nb]
+                if allowed is not None and not any(self.chunks[c].doc_id in allowed for c in edge["chunks"]):
+                    continue  # this relation was extracted from someone else's documents
+                for label in sorted(edge["labels"]):
                     if label == "mentions":
                         continue
                     facts.append(f"{self.entity_by_id[eid]['name']} -[{label}]-> {self.entity_by_id[nb]['name']}")
@@ -242,7 +247,9 @@ class RetrievalIndex:
         with self._lock:
             if not self.chunks:
                 return SearchResult([], [], [])
-            allowed = set(doc_ids) if doc_ids else None
+            allowed = set(doc_ids) if doc_ids is not None else None
+            if allowed is not None and not allowed:
+                return SearchResult([], [], [])   # the caller owns no documents: nothing is searchable
             lists: dict[str, list[int]] = {}
             entity_ids: list[int] = []
             if mode in ("dense", "hybrid", "hybrid+graph", "full"):
@@ -267,11 +274,11 @@ class RetrievalIndex:
             hits = []
             for cid, score in final[:k]:
                 h = self.chunks[cid]
-                hits.append(Hit(h.chunk_id, h.doc_id, h.doc_name, h.section, h.page, h.text, round(score, 4), via.get(cid, [])))
-            return SearchResult(hits, [self.entity_by_id[e]["name"] for e in entity_ids], self._facts(entity_ids) if mode in ("hybrid+graph", "full") else [],
+                hits.append(Hit(h.chunk_id, h.doc_id, h.doc_name, h.section, h.page, h.text, round(score, 4), via.get(cid, []), h.suspicious))
+            return SearchResult(hits, [self.entity_by_id[e]["name"] for e in entity_ids], self._facts(entity_ids, allowed=allowed) if mode in ("hybrid+graph", "full") else [],
                                 candidates=len(fused))
 
-    def graph_json(self, doc_id: int | None = None, max_nodes: int = 120) -> dict:
+    def graph_json(self, doc_id: int | None = None, max_nodes: int = 120, allowed_docs: set[int] | None = None) -> dict:
         """Entities + relations for the explorer. Document hub nodes (negative ids) connect each document
         to its named entities, so an entity shared between contracts visibly bridges them."""
         with self._lock:
@@ -279,6 +286,10 @@ class RetrievalIndex:
             deg = dict(self.graph.degree())
             for eid in sorted(self.graph.nodes, key=lambda e: -deg.get(e, 0)):
                 chunks = self.entity_chunks.get(eid, set())
+                if allowed_docs is not None:   # tenant isolation: only entities that appear in the caller's documents
+                    chunks = {c for c in chunks if self.chunks[c].doc_id in allowed_docs}
+                    if not chunks:
+                        continue
                 if doc_id is not None and not any(self.chunks[c].doc_id == doc_id for c in chunks):
                     continue
                 if len(keep) >= max_nodes:
@@ -288,11 +299,12 @@ class RetrievalIndex:
                 nodes.append({"id": eid, "name": e["name"], "type": e["type"], "degree": deg.get(eid, 0),
                               "docs": sorted({self.chunks[c].doc_id for c in chunks})})
             links = [{"source": a, "target": b, "label": ", ".join(sorted(d["labels"]))[:80]}
-                     for a, b, d in self.graph.edges(data=True) if a in keep and b in keep]
+                     for a, b, d in self.graph.edges(data=True) if a in keep and b in keep
+                     and (allowed_docs is None or any(self.chunks[c].doc_id in allowed_docs for c in d["chunks"]))]
             hubs: dict[int, str] = {}
             for n in nodes:
                 if n["type"] in ("PARTY", "PERSON", "JURISDICTION", "DATE", "AMOUNT"):
-                    for d in n["docs"]:
+                    for d in [x for x in n["docs"] if allowed_docs is None or x in allowed_docs]:
                         if doc_id is None or d == doc_id:
                             hubs[d] = next(h.doc_name for h in self.chunks.values() if h.doc_id == d)
                             links.append({"source": -d, "target": n["id"], "label": "in"})
