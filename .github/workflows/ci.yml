@@ -19,7 +19,7 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements.txt
       - run: pip install -r requirements.txt
-      - name: Tests (offline: fake LLM, hash embedder, no network)
+      - name: "Tests (offline, fake LLM, hash embedder, no network)"
         run: python -m pytest -q
         env:
           EMBEDDING_BACKEND: hash
