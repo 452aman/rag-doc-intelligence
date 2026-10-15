@@ -15,7 +15,7 @@ export default function App() {
         <Route index element={<Documents />} />
         <Route path="documents/:id" element={<DocumentDetail />} />
         <Route path="chat" element={<Chat />} />
-        <Route path="graph" element={<Suspense fallback={<p className="text-slate-500">Loading graph…</p>}><GraphPage /></Suspense>} />
+        <Route path="graph" element={<Suspense fallback={<p className="text-slate-400">Loading graph…</p>}><GraphPage /></Suspense>} />
         <Route path="evaluation" element={<Evaluation />} />
       </Route>
     </Routes>

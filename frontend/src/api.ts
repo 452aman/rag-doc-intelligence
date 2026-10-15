@@ -6,10 +6,10 @@ export const errMsg = (e: unknown): string => {
   return typeof d === 'string' ? d : 'Something went wrong'
 }
 export const sevCls: Record<string, string> = {
-  high: 'bg-rose-100 text-rose-700 ring-rose-200', medium: 'bg-amber-100 text-amber-800 ring-amber-200',
-  low: 'bg-sky-100 text-sky-700 ring-sky-200', info: 'bg-stone-100 text-stone-600 ring-stone-200',
+  high: 'bg-rose-400/15 text-rose-300 ring-rose-400/30', medium: 'bg-amber-400/15 text-amber-200 ring-amber-400/30',
+  low: 'bg-sky-400/15 text-sky-300 ring-sky-400/30', info: 'bg-white/[0.07] text-stone-600 ring-white/10',
 }
 export const typeColor: Record<string, string> = {
   PARTY: '#1d4ed8', PERSON: '#7c3aed', DATE: '#0d9488', AMOUNT: '#b8893b', DURATION: '#0891b2', JURISDICTION: '#dc2626',
-  TERM: '#64748b', DOCUMENT: '#0a1226', CLAUSE: '#a8a29e', OBLIGATION: '#ea580c',
+  TERM: '#64748b', DOCUMENT: '#f1f5f9', CLAUSE: '#a8a29e', OBLIGATION: '#ea580c',
 }
