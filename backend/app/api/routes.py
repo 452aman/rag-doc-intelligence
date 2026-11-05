@@ -1,6 +1,8 @@
 import asyncio
 import hashlib
 import json
+from collections import Counter
+from datetime import date
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
@@ -20,6 +22,16 @@ from app.observability import metrics
 from app.retrieval.index import MODES, index
 
 router = APIRouter()
+_llm_uses: Counter = Counter()  # requests per (user, day) and per day; protects the LLM quota on the public demo
+
+
+def spend_budget(user: User) -> None:
+    today = date.today()
+    cfg = get_settings()
+    if _llm_uses[(user.id, today)] >= cfg.daily_limit_per_user or _llm_uses[today] >= cfg.daily_limit_total:
+        raise HTTPException(429, "Daily demo limit reached. Please try again tomorrow.")
+    _llm_uses[(user.id, today)] += 1
+    _llm_uses[today] += 1
 SAMPLES = next((p for p in (Path(__file__).resolve().parents[3] / "samples", Path("/samples")) if p.exists()), Path("samples"))
 
 
@@ -69,6 +81,7 @@ def _create_and_start(db: Session, user: User, name: str, data: bytes) -> tuple[
 # ------------------------------------------------------------------ documents
 @router.post("/documents", status_code=202)
 async def upload(response: Response, file: UploadFile = File(...), db: Session = Depends(get_db), user: User = Depends(current_user)):
+    spend_budget(user)
     data = await file.read()
     if len(data) > get_settings().max_upload_mb * 1024 * 1024:
         raise HTTPException(413, f"File larger than {get_settings().max_upload_mb}MB")
@@ -84,6 +97,7 @@ async def upload(response: Response, file: UploadFile = File(...), db: Session =
 
 @router.post("/documents/load-samples", status_code=202)
 async def load_samples(db: Session = Depends(get_db), user: User = Depends(current_user)):
+    spend_budget(user)
     existing = set(db.scalars(select(Document.name).where(Document.owner_id == user.id)))
     started = []
     for p in sorted(SAMPLES.glob("*.txt")):
@@ -163,6 +177,7 @@ def _sse(ev: dict) -> str:
 
 @router.post("/chat")
 async def chat(body: ChatIn, user: User = Depends(current_user)):
+    spend_budget(user)
     if body.mode not in MODES:
         raise HTTPException(422, f"mode must be one of {MODES}")
     uid = user.id
@@ -276,6 +291,7 @@ class CompareIn(BaseModel):
 
 @router.post("/compare")
 async def compare(body: CompareIn, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    spend_budget(user)
     if body.doc_a == body.doc_b:
         raise HTTPException(422, "Pick two different contracts")
     a, b = owned_doc(db, user, body.doc_a), owned_doc(db, user, body.doc_b)
@@ -292,6 +308,7 @@ async def compare(body: CompareIn, db: Session = Depends(get_db), user: User = D
 # ------------------------------------------------------------------ evaluation + stats
 @router.post("/evaluation/run")
 async def run_eval(k: int = Query(5, ge=1, le=10), db: Session = Depends(get_db), user: User = Depends(current_user)):
+    spend_budget(user)
     mine = my_ready_ids(db, user.id)
     names = set(db.scalars(select(Document.name).where(Document.id.in_(mine))))
     if not {p.name for p in SAMPLES.glob("*.txt")} <= names:

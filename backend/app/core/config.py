@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     refresh_token_days: int = 7
     data_dir: str = "./data"               # uploaded originals live here so ingestion can resume after a restart
     log_json: bool = True
+    daily_limit_per_user: int = 40         # LLM-backed requests per user per day
+    daily_limit_total: int = 300           # and across all users
 
 
 @lru_cache
